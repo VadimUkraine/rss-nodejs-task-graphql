@@ -1,5 +1,6 @@
 import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-schema-to-ts';
 import { FastifyInstance } from 'fastify';
+import * as depthLimit from 'graphql-depth-limit';
 import { graphqlBodySchema } from './schema';
 import {
   graphql,
@@ -8,6 +9,8 @@ import {
   GraphQLList,
   GraphQLID,
   GraphQLNonNull,
+  parse,
+  validate,
 } from 'graphql';
 import { graphUser } from './types/user';
 import { graphProfile } from './types/profile';
@@ -22,6 +25,8 @@ import { updatePostInput } from './types/updatePostInput';
 import { updateMemberTypeInput } from './types/updateMemberTypeInput';
 import { subscribeToUserInput } from './types/subscribeToUserInput';
 import { unsubscribeFromUserInput } from './types/unsubscribeFromUserInput';
+
+const DEPTH_LIMIT = 6;
 
 const querySchema = new GraphQLObjectType({
   name: 'Query',
@@ -391,10 +396,24 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply) {
       const { query, variables } = request.body;
+      const queryAsString = String(query);
+
+      const errors = validate(schema, parse(queryAsString), [
+        depthLimit(DEPTH_LIMIT),
+      ]);
+
+      if (errors.length > 0) {
+        const errorResponse = {
+          errors,
+          data: null,
+        };
+
+        return errorResponse;
+      }
 
       return await graphql({
         schema,
-        source: String(query),
+        source: queryAsString,
         variableValues: variables,
         contextValue: fastify,
       });
