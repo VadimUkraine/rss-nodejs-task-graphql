@@ -20,7 +20,7 @@ const graphUser: GraphQLOutputType = new GraphQLObjectType({
     subscribedToUserIds: { type: new GraphQLList(GraphQLString) },
     userSubscribedTo: {
       type: new GraphQLList(graphUser),
-      resolve: async (source: UserEntity, args: unknown, { fastify }) =>
+      resolve: async (source: UserEntity, args: unknown, fastify) =>
         await fastify.db.users.findMany({
           key: 'subscribedToUserIds',
           inArray: source.id,
@@ -28,7 +28,7 @@ const graphUser: GraphQLOutputType = new GraphQLObjectType({
     },
     subscribedToUser: {
       type: new GraphQLList(graphUser),
-      resolve: async (source: UserEntity, args: unknown, { fastify }) => {
+      resolve: async (source: UserEntity, args: unknown, fastify) => {
         const { subscribedToUserIds } = source;
         const subscribedToUser = subscribedToUserIds.map(
           async (subscriberId: string) => {
@@ -46,7 +46,7 @@ const graphUser: GraphQLOutputType = new GraphQLObjectType({
     },
     profile: {
       type: graphProfile,
-      resolve: async (source: UserEntity, args: unknown, { fastify }) =>
+      resolve: async (source: UserEntity, args: unknown, fastify) =>
         await fastify.db.profiles.findOne({
           key: 'userId',
           equals: source.id,
@@ -54,7 +54,7 @@ const graphUser: GraphQLOutputType = new GraphQLObjectType({
     },
     posts: {
       type: new GraphQLList(graphPost),
-      resolve: async (source: UserEntity, args: unknown, { fastify }) =>
+      resolve: async (source: UserEntity, args: unknown, fastify) =>
         await fastify.db.posts.findMany({
           key: 'userId',
           equals: source.id,
@@ -62,7 +62,7 @@ const graphUser: GraphQLOutputType = new GraphQLObjectType({
     },
     memberType: {
       type: graphMemberType,
-      resolve: async (source: UserEntity, args: unknown, { fastify }) => {
+      resolve: async (source: UserEntity, args: unknown, fastify) => {
         const profile = await fastify.db.profiles.findOne({
           key: 'userId',
           equals: source.id,
