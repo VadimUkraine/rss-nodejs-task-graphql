@@ -8,7 +8,11 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
 ): Promise<void> => {
   fastify.get('/', async function (request, reply): Promise<
     MemberTypeEntity[]
-  > {});
+  > {
+    const memberTypes = await fastify.db.memberTypes.findMany();
+
+    return reply.send(memberTypes);
+  });
 
   fastify.get(
     '/:id',
@@ -17,7 +21,28 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<MemberTypeEntity> {}
+    async function (request, reply): Promise<MemberTypeEntity> {
+      const { id } = request.params;
+
+      if (!id) {
+        reply.badRequest();
+      }
+
+      try {
+        const memberType = await fastify.db.memberTypes.findOne({
+          key: 'id',
+          equals: id,
+        });
+
+        if (!memberType) {
+          reply.notFound();
+        }
+
+        return reply.send(memberType);
+      } catch (error) {
+        return reply.status(400).send({ message: (error as Error).message });
+      }
+    }
   );
 
   fastify.patch(
@@ -28,7 +53,38 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<MemberTypeEntity> {}
+    async function (request, reply): Promise<MemberTypeEntity> {
+      const { id } = request.params;
+      const updatedFields = request.body;
+
+      if (!id || !updatedFields) {
+        reply.badRequest();
+      }
+
+      const memberType = await fastify.db.memberTypes.findOne({
+        key: 'id',
+        equals: id,
+      });
+
+      if (!memberType) {
+        reply.badRequest();
+      }
+
+      try {
+        const updatedMemberType = {
+          ...memberType,
+          discount: updatedFields.discount ?? memberType?.discount,
+          monthPostsLimit:
+            updatedFields.monthPostsLimit ?? memberType?.monthPostsLimit,
+        };
+
+        await fastify.db.memberTypes.change(id, updatedMemberType);
+
+        return reply.send(updatedMemberType);
+      } catch (error) {
+        return reply.status(400).send({ message: (error as Error).message });
+      }
+    }
   );
 };
 
